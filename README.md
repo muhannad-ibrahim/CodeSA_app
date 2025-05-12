@@ -8,10 +8,13 @@ A web application for processing PDF files with a Django REST Framework backend 
 pdf-task-processor/
 ├── backend/                 # Django backend
 │   ├── task_processor/     # Django project settings
+│   │   ├── celery.py      # Celery configuration
+│   │   └── __init__.py    # Celery app initialization
 │   ├── tasks/             # Django app for PDF processing
 │   │   ├── models.py      # Task model definition
 │   │   ├── serializers.py # API serializers
 │   │   ├── views.py       # API views and PDF processing logic
+│   │   ├── tasks.py       # Celery tasks
 │   │   └── urls.py        # URL routing
 │   ├── media/             # Uploaded and processed files
 │   └── requirements.txt   # Python dependencies
@@ -30,6 +33,8 @@ pdf-task-processor/
 - **Django**: Web framework
 - **Django REST Framework**: API development
 - **PDFtk**: PDF processing and compression
+- **Celery**: Asynchronous task processing
+- **Redis**: Message broker for Celery
 - **SQLite**: Database (can be changed to PostgreSQL for production)
 - **CORS Headers**: Cross-origin resource sharing support
 
@@ -37,7 +42,8 @@ pdf-task-processor/
 - **React**: UI library
 - **Axios**: HTTP client
 - **React Router**: Client-side routing
-- **Bootstrap**: UI styling
+- **Material-UI**: UI component library
+- **React Query**: Data fetching and caching
 
 ## Features
 - PDF file upload
@@ -52,6 +58,7 @@ pdf-task-processor/
 ### Backend
 - Python 3.8+
 - PDFtk Server 2.02+
+- Redis Server
 - Virtual environment (recommended)
 
 ### Frontend
@@ -79,12 +86,30 @@ pdf-task-processor/
    - Linux: `sudo apt-get install pdftk`
    - Mac: `brew install pdftk`
 
-4. Run migrations:
+4. Install and start Redis:
+   - Windows: Download and install from [Redis for Windows](https://github.com/microsoftarchive/redis/releases)
+   - Linux: `sudo apt-get install redis-server`
+   - Mac: `brew install redis`
+   
+   Start Redis server:
+   - Windows: Start Redis service from Services
+   - Linux/Mac: `redis-server`
+
+5. Run migrations:
    ```bash
    python manage.py migrate
    ```
 
-5. Start the server:
+6. Start Celery worker:
+   ```bash
+   # For Windows (using solo pool for better stability):
+   celery -A task_processor worker --pool=solo --loglevel=info
+   
+   # For Linux/Mac (using prefork pool):
+   celery -A task_processor worker --loglevel=info
+   ```
+
+7. Start the Django server:
    ```bash
    python manage.py runserver
    ```
@@ -113,7 +138,9 @@ pdf-task-processor/
 
 ### Backend Development
 - The backend uses Django REST Framework for API development
-- PDF processing is handled by PDFtk for efficient compression
+- PDF processing is handled asynchronously using Celery
+- Redis is used as the message broker for Celery
+- On Windows, Celery uses the solo pool for better stability
 - Task status is tracked in the database
 - Media files are stored in the `media` directory
 

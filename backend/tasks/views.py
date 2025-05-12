@@ -4,9 +4,8 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import Task
 from .serializers import TaskSerializer
+from .tasks import process_pdf
 import os
-import subprocess
-from django.conf import settings
 from django.http import FileResponse
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -17,46 +16,10 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = []  # Removed IsAuthenticated
 
     def perform_create(self, serializer):
-        """Create a new task and process the PDF file using pdftk."""
+        """Create a new task and start PDF processing asynchronously."""
         task = serializer.save()
-        task.status = Task.TaskStatus.PROCESSING
-        task.save()
-
-        try:
-            # Get input file path
-            input_path = task.get_input_file_path()
-            
-            # Create output directory if it doesn't exist
-            output_dir = os.path.join(settings.MEDIA_ROOT, 'output_files')
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Set output file path
-            output_filename = f"compressed_{task.id}.pdf"
-            output_path = os.path.join(output_dir, output_filename)
-            
-            # Compress PDF using pdftk
-            # pdftk input.pdf output compressed.pdf compress
-            subprocess.run([
-                'pdftk',
-                input_path,
-                'output',
-                output_path,
-                'compress'
-            ], check=True)
-
-            # Update task with output file
-            task.output_file = f'output_files/{output_filename}'
-            task.status = Task.TaskStatus.COMPLETED
-            task.save()
-
-        except subprocess.CalledProcessError as e:
-            task.status = Task.TaskStatus.FAILED
-            task.error_message = f"PDF compression failed: {str(e)}"
-            task.save()
-        except Exception as e:
-            task.status = Task.TaskStatus.FAILED
-            task.error_message = str(e)
-            task.save()
+        # Start the Celery task
+        process_pdf.delay(str(task.id))
 
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
