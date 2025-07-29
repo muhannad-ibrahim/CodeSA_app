@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void test_malloc_1() {
+void test_malloc_2() {
     void* ptr = malloc(1024);
     if (ptr != NULL) {
         printf("Memory allocated successfully\n");
@@ -13,6 +13,6 @@ void test_malloc_1() {
 }
 
 int main() {
-    test_malloc_1();
+    test_malloc_2();
     return 0;
 }
