@@ -1,34 +1,32 @@
-#include <libavutil/frame.h>
-#include <libavutil/mem.h>
-#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/frame.h>
 
 struct enc_encoder {
-    uint8_t *samples[1];
     AVFrame *aframe;
 };
 
-int Test_enc_destroy() {
-    // Initialize function parameters
+int Test_initialize_codec() {
     struct enc_encoder enc;
-    enc.samples[0] = (uint8_t *)av_malloc(100); // Allocate memory for the sample
-    enc.aframe = av_frame_alloc(); // Allocate an AVFrame
+    int ret;
 
-    // Free the first sample if it exists
-    uint8_t *first_sample = enc.samples[0];
-    if (first_sample) {
-        av_freep(&enc.samples[0]);
+    // Initialize network components
+    avformat_network_init();
+
+    // Allocate memory for AVFrame
+    AVFrame *allocated_frame = av_frame_alloc();
+    enc.aframe = allocated_frame;
+
+    // Check if allocation was successful
+    if (!enc.aframe) {
+        return -1;
     }
 
-    // Free the audio frame if it exists
-    AVFrame *audio_frame = enc.aframe;
-    if (audio_frame) {
-        av_frame_free(&enc.aframe);
-    }
+    // Clean up
+    av_frame_free(&enc.aframe);
 
     return 0;
 }
 
 int main() {
-    return Test_enc_destroy();
+    return Test_initialize_codec();
 }
